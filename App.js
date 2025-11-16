@@ -9,7 +9,12 @@ export default function App() {
         style={{flex: 1}}>
 
     <View style={styles.container}>
-      <Text style={styles.text}>Hora de despertar -&gt; 8:00</Text>
+      <Text style={styles.mainText}>Hora de despertar -&gt; 8:00</Text>
+
+      <Text style={styles.secoundaryText}>Número de alarmas {"\n"}programadas -&gt; 12</Text>
+
+      
+
       <StatusBar style="auto" />
     </View>
 
@@ -26,7 +31,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: 100,
   },
-  text: {
+  mainText: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '700',
@@ -42,5 +47,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     overflow: 'hidden',
+  },
+  secoundaryText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    paddingTop: 30,
+    paddingHorizontal: 20,
   }
 });
