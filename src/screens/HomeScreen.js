@@ -59,13 +59,11 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.container}>
 
         <TouchableOpacity onPress={openTimePicker}>
-          <View style={{ height: 20 }}>
-            <Text style={styles.mainText}>Hora de despertar: {wakeTime.toLocaleTimeString()}</Text>
-          </View>
+          <Text style={styles.mainText}>Wake up time {"\n"} {wakeTime.toLocaleTimeString()}</Text>
         </TouchableOpacity>
 
 
-        <View style={{ height: 20 }}>
+        <View style={styles.inputSection}>
           <Text style={styles.secoundaryText}>Alarm count for tomorrow: {alarmCount}</Text>
           <TextInput
             style={styles.input}
@@ -77,7 +75,7 @@ export default function HomeScreen({ navigation }) {
           />
         </View>
 
-        <View style={{ height: 20 }}>
+        <View style={styles.inputSection}>
           <Text style={styles.secoundaryText}>Interval: {interval}</Text>
           <TextInput
             style={styles.input}
@@ -130,8 +128,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 0.5,
-    paddingTop: 30,
     paddingHorizontal: 20,
+  },
+  inputSection: {
+    alignItems: 'center',
+    marginTop: 30,
   },
   input: {
     height: 40,
