@@ -2,19 +2,39 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, FlatList } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useState } from 'react';
+import { pick, keepLocalCopy, types } from '@react-native-documents/picker'
+import { isCancel } from 'react-native-document-picker';
+
 
 export default function TonePoolScreen({ navigation }) {
 
   const [selectedTones, setSelectedTones] = useState([]);
-  const handleToneSelection = (toneObject) => {
-    if (toneObject && toneObject.uri) {
-      setSelectedTones([...selectedTones, toneObject]);
-    } else {
-      console.log("No tone selected");
+  const handleToneSelection = async () => {
+    try {
+      const results = await pick({
+        allowMultiSelection: true,
+        types: [types.audio],
+      });
+
+      if (results.length > 0) {
+        
+        // Optionally keep a local copy of the selected tones
+        // TODO: Need to see if this necessary for the MVP
+
+        setSelectedTones([...selectedTones, ...results]);
+        console.log("Selected tones: ", results);
+      } else {
+        console.log("No tones selected");
+      }
+
+    } catch (error) {
+      if (isCancel(error)) {
+        console.log("User cancelled tone selection");
+      } else {
+        console.error("Error selecting tones: ", error);
+      }
     }
   }
-
-
 
   return (
     <LinearGradient
