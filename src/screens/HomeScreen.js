@@ -39,7 +39,6 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-
   const [alarmCount, setAlarmCount] = useState(5);
   const handleAlarmCountChange = (text) => {
     const numericalValue = parseInt(text);
@@ -50,6 +49,17 @@ export default function HomeScreen({ navigation }) {
       console.log("Invalid input for alarm count | Falling back to 1");
     }
   }
+
+  const handleClusterActivation = async () => {
+    // TODO : Implement alarm scheduling logic here
+    console.log("Cluster Activated");
+  }
+
+  const handleClusterDeactivation = async () => {
+    // TODO : Implement alarm cancellation logic here
+    console.log("Cluster Deactivated");
+  }
+
 
   return (
     <LinearGradient
@@ -87,11 +97,22 @@ export default function HomeScreen({ navigation }) {
           />
         </View>
 
+        <TouchableOpacity onPress={handleClusterActivation} style={styles.mainButton}>
+          <Text style={styles.buttonText}>Activate Cluster</Text>
+        </TouchableOpacity>
 
+        <TouchableOpacity onPress={handleClusterDeactivation} style={styles.secondaryButton}>
+          <Text style={styles.buttonText}>Deactivate Cluster</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          onPress={() => {navigation.navigate('TonePool'); console.log("Navigating to Tone Pool")}} 
+          style={styles.tonePoolButton}>
+          <Text style={styles.buttonText}>Manage Tone Pool</Text>
+        </TouchableOpacity>
 
         <StatusBar style="auto" />
       </View>
-
     </LinearGradient>
   );
 }
@@ -145,5 +166,42 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  mainButton: {
+    backgroundColor: '#FF6347', // Un color vibrante para el botón principal
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    marginTop: 50,
+    elevation: 8, // Sombra para Android
+    shadowColor: '#FF6347', // Sombra para iOS
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Estilo menos prominente
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
+  tonePoolButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 10,
   }
 });
