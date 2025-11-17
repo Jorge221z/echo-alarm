@@ -36,6 +36,12 @@ export default function TonePoolScreen({ navigation }) {
     }
   }
 
+  const handleToneDeletion = (uri) => {
+    const updatedTones = selectedTones.filter(tone => tone.uri !== uri);
+    setSelectedTones(updatedTones);
+    console.log("Deleted tone with URI: ", uri);
+  }
+
   return (
     <LinearGradient
       colors={['#4A90E2', '#6B5CE7', '#5f61e6ff']}
