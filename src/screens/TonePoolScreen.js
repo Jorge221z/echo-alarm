@@ -1,9 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useState } from 'react';
-import { pick, keepLocalCopy, types } from '@react-native-documents/picker'
-import { isCancel } from 'react-native-document-picker';
+import { pick, types, isCancel } from '@react-native-documents/picker';
 
 
 export default function TonePoolScreen({ navigation }) {
@@ -36,7 +35,7 @@ export default function TonePoolScreen({ navigation }) {
     }
   }
 
-  const handleToneDeletion = (uri) => {
+  const toneDeletion = (uri) => {
     const updatedTones = selectedTones.filter(tone => tone.uri !== uri);
     setSelectedTones(updatedTones);
     console.log("Deleted tone with URI: ", uri);
@@ -58,9 +57,22 @@ export default function TonePoolScreen({ navigation }) {
           renderItem={({ item }) => (
             <View style={styles.listItem}>
               <Text style={styles.listItemText}>{item.name}</Text>
+
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => toneDeletion(item.uri)}
+              >
+                <Text style={styles.deleteButtonText}>X</Text>
+              </TouchableOpacity>
             </View>
           )}
         />
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={handleToneSelection}
+        >
+          <Text style={styles.addButtonText}>Agregar tonos</Text>
+        </TouchableOpacity>
 
         <StatusBar style="auto" />
       </View>
@@ -137,5 +149,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  addButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 15,
+    marginTop: 20,
+    marginBottom: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
 });
