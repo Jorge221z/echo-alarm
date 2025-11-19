@@ -46,6 +46,13 @@ export default function TonePoolScreen({ navigation }) {
       colors={['#4A90E2', '#6B5CE7', '#5f61e6ff']}
       style={{ flex: 1 }}>
 
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.backButtonText}>←</Text>
+      </TouchableOpacity>
+
       <View style={styles.container}>
         <Text style={styles.mainText}>Pool de tonos</Text>
 
@@ -84,6 +91,23 @@ export default function TonePoolScreen({ navigation }) {
 
 
 const styles = StyleSheet.create({
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    zIndex: 10,
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     alignItems: 'center',
