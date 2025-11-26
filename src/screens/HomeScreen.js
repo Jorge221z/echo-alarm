@@ -2,7 +2,8 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TouchableOpacity, TextInput } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
@@ -51,7 +52,25 @@ export default function HomeScreen({ navigation }) {
   }
 
   const handleClusterActivation = async () => {
-    // TODO : Implement alarm scheduling logic here
+    
+    const alarmProfile = {
+    wakeTime: wakeTime.toISOString(),
+    interval: interval,
+    alarmCount: alarmCount,
+    tonePool: selectedTones // Array of {name, uri}
+  };
+
+
+    try {
+      await AsyncStorage.setItem('ALARM_PROFILE', JSON.stringify(alarmProfile));
+      console.log("Saving alarm profile, ready to be sent to the native module: ", alarmProfile);
+
+      // AlarmSchedulerModule.setAlarmCluster(perfilJSON);
+      
+    } catch (error) {
+      console.error("Error saving alarm profile: ", error);
+    }
+
     console.log("Cluster Activated");
   }
 
@@ -59,6 +78,38 @@ export default function HomeScreen({ navigation }) {
     // TODO : Implement alarm cancellation logic here
     console.log("Cluster Deactivated");
   }
+
+  const loadAlarmProfile = async () => {
+    try {
+      const perfilJSON = await AsyncStorage.getItem('ALARM_PROFILE');
+      if (perfilJSON != null) {
+        const perfil = JSON.parse(perfilJSON);
+        console.log("Loaded alarm profile: ", perfil);
+        return perfil;
+      } else {
+        console.log("No alarm profile found");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error loading alarm profile: ", error);
+      return null;
+    }
+  }
+  
+  useEffect(() => {
+
+    const fetchAlarmProfile = async () => {
+      const perfil = await loadAlarmProfile();
+      if (perfil) {
+        setWakeTime(new Date(perfil.wakeTime));
+        setInterval(perfil.interval);
+        setAlarmCount(perfil.alarmCount);
+        setSelectedTones(perfil.tonePool || []);
+      }
+    };
+
+    fetchAlarmProfile();
+  }, []);
 
 
   return (
