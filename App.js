@@ -8,6 +8,9 @@ import TonePoolScreen from './src/screens/TonePoolScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+
+  const [tonePool, setTonePool] = useState([]);
+  
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName='Home'>
@@ -16,13 +19,17 @@ export default function App() {
           name="Home" 
           component={HomeScreen}
           options={{ headerShown: false }} 
-        />
+        >
+          {(props) => <HomeScreen {...props} tonePool={tonePool} setTonePool={setTonePool} />}
+        </Stack.Screen>
 
         <Stack.Screen 
           name="TonePool" 
           component={TonePoolScreen}
-          options={{ headerShown: false }} 
-        />
+          options={{ headerShown: false }}   
+        >
+          {(props) => <TonePoolScreen {...props} tonePool={tonePool} setTonePool={setTonePool} />}
+        </Stack.Screen>
 
       </Stack.Navigator>
     </NavigationContainer>

@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, tonePool, setTonePool }) {
 
   const [wakeTime, setWakeTime] = useState(new Date());
   const handleTimeChange = (newDate) => {
@@ -57,7 +57,7 @@ export default function HomeScreen({ navigation }) {
     wakeTime: wakeTime.toISOString(),
     interval: interval,
     alarmCount: alarmCount,
-    tonePool: selectedTones // Array of {name, uri}
+    tonePool: tonePool // Array of {name, uri}
   };
 
 

@@ -5,9 +5,8 @@ import { useState } from 'react';
 import { pick, types, isCancel } from '@react-native-documents/picker';
 
 
-export default function TonePoolScreen({ navigation }) {
+export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
 
-  const [selectedTones, setSelectedTones] = useState([]);
   const handleToneSelection = async () => {
     try {
       const results = await pick({
@@ -20,7 +19,7 @@ export default function TonePoolScreen({ navigation }) {
         // Optionally keep a local copy of the selected tones
         // TODO: Need to see if this necessary for the MVP
 
-        setSelectedTones([...selectedTones, ...results]);
+        setTonePool([...tonePool, ...results]);
         console.log("Selected tones: ", results);
       } else {
         console.log("No tones selected");
@@ -36,8 +35,8 @@ export default function TonePoolScreen({ navigation }) {
   }
 
   const toneDeletion = (uri) => {
-    const updatedTones = selectedTones.filter(tone => tone.uri !== uri);
-    setSelectedTones(updatedTones);
+    const updatedTones = tonePool.filter(tone => tone.uri !== uri);
+    setTonePool(updatedTones);
     console.log("Deleted tone with URI: ", uri);
   }
 
@@ -48,8 +47,7 @@ export default function TonePoolScreen({ navigation }) {
 
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+        onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>←</Text>
       </TouchableOpacity>
 
@@ -59,7 +57,7 @@ export default function TonePoolScreen({ navigation }) {
         <FlatList
           style={{ marginTop: 20, width: '100%' }}
           contentContainerStyle={{ alignItems: 'center' }}
-          data={selectedTones}
+          data={tonePool}
           keyExtractor={(item) => item.uri}
           renderItem={({ item }) => (
             <View style={styles.listItem}>
