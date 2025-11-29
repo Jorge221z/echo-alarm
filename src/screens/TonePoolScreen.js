@@ -1,9 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useState } from 'react';
 import { pick, types, isCancel } from '@react-native-documents/picker';
 import { DEFAULT_TONES_DATA } from '../resources/ToneCollector';
+import TonePickerModal from '../components/modals/TonePickerModal';
 
 
 export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
@@ -110,39 +111,12 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
           <Text style={styles.addButtonText}>Agregar tonos</Text>
         </TouchableOpacity>
 
-        <Modal
-          animationType="slide"
-          transparent={true}
+        <TonePickerModal
           visible={isModalVisible}
-          onRequestClose={() => setIsModalVisible(false)} // Para Android (botón de atrás)
-        >
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <Text style={styles.modalTitle}>¿Qué tonos deseas añadir?</Text>
-
-              {/* Option 1: Default Tones */}
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={addDefaultTones}>
-                <Text style={styles.modalButtonText}>Tonos de la Aplicación (Predeterminados)</Text>
-              </TouchableOpacity>
-
-              {/* Option 2: Custom Tones from Mobile */}
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={addCustomTones}>
-                <Text style={styles.modalButtonText}>Tonos Personalizados del Móvil</Text>
-              </TouchableOpacity>
-
-              {/* Close Button */}
-              <TouchableOpacity
-                style={[styles.modalButton, styles.buttonClose]}
-                onPress={() => setIsModalVisible(false)}>
-                <Text style={styles.modalButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+          onClose={() => setIsModalVisible(false)}
+          onAddDefault={addDefaultTones}
+          onAddCustom={addCustomTones}
+        />
 
         <StatusBar style="auto" />
       </View>
