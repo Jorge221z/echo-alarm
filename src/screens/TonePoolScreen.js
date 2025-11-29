@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { pick, types, isCancel } from '@react-native-documents/picker';
 import { DEFAULT_TONES_DATA } from '../resources/ToneCollector';
 import TonePickerModal from '../components/modals/TonePickerModal';
+import DefaultToneSelectionModal from '../components/modals/DefaultToneSelectionModal';
 
 
 export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
@@ -38,20 +39,16 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
     setIsModalVisible(false);
   }
 
-  const addDefaultTones = () => {
-    
-    const defaultTones = DEFAULT_TONES_DATA.filter(tone => {
-      const alreadyInPool = tonePool.some(tp => tp.id === tone.id);
-      return !alreadyInPool;
-    });
+  const [isModalVisible, setIsModalVisible] = useState(false); // Modal to pick app tones or user tones
+  const [isDefaultSelectionModalVisible, setIsDefaultSelectionModalVisible] = useState(false);
 
-    if (defaultTones.length === 0) {
-      console.log("All default tones are already in the pool");
-      setIsModalVisible(false);
-      return;
-    }
+  const openDefaultToneSelection = () => {
+    setIsModalVisible(false);
+    setIsDefaultSelectionModalVisible(true);
+  }
 
-    const newTones = defaultTones.map(tone => ({
+  const handleConfirmDefaultTones = (selectedTones) => {
+    const newTones = selectedTones.map(tone => ({
       id: tone.id,
       name: tone.name,
       uri: tone.source, // Using 'source' as 'uri' for consistency
@@ -59,18 +56,14 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
     }));
 
     setTonePool(tonePool => ([...tonePool, ...newTones]));
-
     console.log("Added default tones: ", newTones);
-    setIsModalVisible(false);
+    setIsDefaultSelectionModalVisible(false);
   }
 
-  const toneDeletion = (uri) => {
-    const updatedTones = tonePool.filter(tone => tone.uri !== uri);
-    setTonePool(updatedTones);
-    console.log("Deleted tone with URI: ", uri);
-  }
-
-  const [isModalVisible, setIsModalVisible] = useState(false); // Modal to pick app tones or user tones
+  const availableDefaultTones = DEFAULT_TONES_DATA.filter(tone => {
+    const alreadyInPool = tonePool.some(tp => tp.id === tone.id);
+    return !alreadyInPool;
+  });
 
   return (
     <LinearGradient
@@ -114,8 +107,15 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
         <TonePickerModal
           visible={isModalVisible}
           onClose={() => setIsModalVisible(false)}
-          onAddDefault={addDefaultTones}
+          onAddDefault={openDefaultToneSelection}
           onAddCustom={addCustomTones}
+        />
+
+        <DefaultToneSelectionModal
+          visible={isDefaultSelectionModalVisible}
+          onClose={() => setIsDefaultSelectionModalVisible(false)}
+          onAdd={handleConfirmDefaultTones}
+          availableTones={availableDefaultTones}
         />
 
         <StatusBar style="auto" />
