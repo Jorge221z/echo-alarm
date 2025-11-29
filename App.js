@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import HomeScreen from './src/screens/HomeScreen';
 import TonePoolScreen from './src/screens/TonePoolScreen';
+import { useState } from 'react';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,7 +18,6 @@ export default function App() {
           
         <Stack.Screen 
           name="Home" 
-          component={HomeScreen}
           options={{ headerShown: false }} 
         >
           {(props) => <HomeScreen {...props} tonePool={tonePool} setTonePool={setTonePool} />}
@@ -25,7 +25,6 @@ export default function App() {
 
         <Stack.Screen 
           name="TonePool" 
-          component={TonePoolScreen}
           options={{ headerShown: false }}   
         >
           {(props) => <TonePoolScreen {...props} tonePool={tonePool} setTonePool={setTonePool} />}

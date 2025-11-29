@@ -1,13 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useState } from 'react';
 import { pick, types, isCancel } from '@react-native-documents/picker';
+import { DEFAULT_TONES_DATA } from '../resources/ToneCollector';
 
 
 export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
 
-  const handleToneSelection = async () => {
+  const addCustomTones = async () => {
     try {
       const results = await pick({
         allowMultiSelection: true,
@@ -15,7 +16,7 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
       });
 
       if (results.length > 0) {
-        
+
         // Optionally keep a local copy of the selected tones
         // TODO: Need to see if this necessary for the MVP
 
@@ -32,6 +33,34 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
         console.error("Error selecting tones: ", error);
       }
     }
+
+    setIsModalVisible(false);
+  }
+
+  const addDefaultTones = () => {
+    
+    const defaultTones = DEFAULT_TONES_DATA.filter(tone => {
+      const alreadyInPool = tonePool.some(tp => tp.id === tone.id);
+      return !alreadyInPool;
+    });
+
+    if (defaultTones.length === 0) {
+      console.log("All default tones are already in the pool");
+      setIsModalVisible(false);
+      return;
+    }
+
+    const newTones = defaultTones.map(tone => ({
+      id: tone.id,
+      name: tone.name,
+      uri: tone.source, // Using 'source' as 'uri' for consistency
+      isDefault: true
+    }));
+
+    setTonePool(tonePool => ([...tonePool, ...newTones]));
+
+    console.log("Added default tones: ", newTones);
+    setIsModalVisible(false);
   }
 
   const toneDeletion = (uri) => {
@@ -39,6 +68,8 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
     setTonePool(updatedTones);
     console.log("Deleted tone with URI: ", uri);
   }
+
+  const [isModalVisible, setIsModalVisible] = useState(false); // Modal to pick app tones or user tones
 
   return (
     <LinearGradient
@@ -74,10 +105,44 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
         />
         <TouchableOpacity
           style={styles.addButton}
-          onPress={handleToneSelection}
+          onPress={() => setIsModalVisible(true)}
         >
           <Text style={styles.addButtonText}>Agregar tonos</Text>
         </TouchableOpacity>
+
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={() => setIsModalVisible(false)} // Para Android (botón de atrás)
+        >
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <Text style={styles.modalTitle}>¿Qué tonos deseas añadir?</Text>
+
+              {/* Option 1: Default Tones */}
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={addDefaultTones}>
+                <Text style={styles.modalButtonText}>Tonos de la Aplicación (Predeterminados)</Text>
+              </TouchableOpacity>
+
+              {/* Option 2: Custom Tones from Mobile */}
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={addCustomTones}>
+                <Text style={styles.modalButtonText}>Tonos Personalizados del Móvil</Text>
+              </TouchableOpacity>
+
+              {/* Close Button */}
+              <TouchableOpacity
+                style={[styles.modalButton, styles.buttonClose]}
+                onPress={() => setIsModalVisible(false)}>
+                <Text style={styles.modalButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         <StatusBar style="auto" />
       </View>
