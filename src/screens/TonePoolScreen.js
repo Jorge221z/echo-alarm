@@ -1,12 +1,93 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { pick, types, isCancel } from '@react-native-documents/picker';
 import { DEFAULT_TONES_DATA } from '../resources/ToneCollector';
 import TonePickerModal from '../components/modals/TonePickerModal';
 import DefaultToneSelectionModal from '../components/modals/DefaultToneSelectionModal';
 
+const { width } = Dimensions.get('window');
+
+const ToneListItem = ({ item, onDelete }) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const height = useRef(new Animated.Value(65)).current; // Reduced height
+  const marginBottom = useRef(new Animated.Value(8)).current;
+
+  const handleDelete = () => {
+    Animated.parallel([
+      Animated.timing(translateX, {
+        toValue: width,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.timing(height, {
+        toValue: 0,
+        duration: 300,
+        delay: 150,
+        useNativeDriver: false,
+      }),
+      Animated.timing(marginBottom, {
+        toValue: 0,
+        duration: 300,
+        delay: 150,
+        useNativeDriver: false,
+      })
+    ]).start(() => {
+      onDelete(item.uri);
+    });
+  };
+
+  return (
+    <Animated.View style={[
+      styles.listItem, 
+      { 
+        transform: [{ translateX }], 
+        opacity,
+        height,
+        marginBottom,
+        overflow: 'hidden'
+      }
+    ]}>
+      <View style={styles.listItemContent}>
+        <View style={styles.toneIconContainer}>
+          <Text style={styles.toneIcon}>🎵</Text>
+        </View>
+        
+        <View style={styles.textContainer}>
+          <Text style={styles.listItemText} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.subText}>
+            {item.isDefault ? 'Predeterminado' : 'Personalizado'}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteButtonText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
+};
+
+const EmptyState = () => (
+  <View style={styles.emptyStateContainer}>
+    <Text style={styles.emptyStateIcon}>🔕</Text>
+    <Text style={styles.emptyStateTitle}>¡Todo en silencio!</Text>
+    <Text style={styles.emptyStateText}>
+      Añade algunos tonos para crear tu alarma perfecta.
+    </Text>
+  </View>
+);
 
 export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
 
@@ -65,6 +146,12 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
     return !alreadyInPool;
   });
 
+  const toneDeletion = (uri) => {
+    const updatedPool = tonePool.filter(tone => tone.uri !== uri);
+    setTonePool(updatedPool);
+    console.log("Deleted tone with uri: ", uri);
+  }
+
   return (
     <LinearGradient
       colors={['#4A90E2', '#6B5CE7', '#5f61e6ff']}
@@ -81,20 +168,15 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
 
         <FlatList
           style={{ marginTop: 20, width: '100%' }}
-          contentContainerStyle={{ alignItems: 'center' }}
+          contentContainerStyle={{ alignItems: 'center', flexGrow: 1 }}
           data={tonePool}
           keyExtractor={(item) => item.uri}
+          ListEmptyComponent={EmptyState}
           renderItem={({ item }) => (
-            <View style={styles.listItem}>
-              <Text style={styles.listItemText}>{item.name}</Text>
-
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => toneDeletion(item.uri)}
-              >
-                <Text style={styles.deleteButtonText}>X</Text>
-              </TouchableOpacity>
-            </View>
+            <ToneListItem 
+              item={item} 
+              onDelete={toneDeletion} 
+            />
           )}
         />
         <TouchableOpacity
@@ -178,38 +260,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   listItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Fondo semitransparente claro
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    marginVertical: 6, // Space between items
-    width: '90%',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    width: '95%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4, // Shadow for Android
-    flexDirection: 'row', // To align text and button horizontally
-    justifyContent: 'space-between',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  listItemContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    height: '100%',
+    width: '100%',
+  },
+  toneIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  toneIcon: {
+    fontSize: 18,
+  },
+  textContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    marginRight: 8,
   },
   listItemText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500', // Slightly less bold than the title
-    flexShrink: 1, // Allows the text to shrink if it's too long
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
   },
-  // Style for the delete button (which comes next)
+  subText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+    fontWeight: '400',
+  },
   deleteButton: {
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
-    padding: 5,
-    borderRadius: 5,
-    marginLeft: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   deleteButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
     fontSize: 14,
+    color: '#FF6B6B',
+    fontWeight: 'bold',
   },
   addButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -231,5 +340,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 0.5,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 50,
+  },
+  emptyStateIcon: {
+    fontSize: 60,
+    marginBottom: 20,
+    opacity: 0.6,
+  },
+  emptyStateTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });
