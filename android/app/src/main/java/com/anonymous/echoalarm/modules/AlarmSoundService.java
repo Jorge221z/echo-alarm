@@ -79,7 +79,7 @@ public class AlarmSoundService extends Service {
         // Build the Notification (the visible message and the invisible wake-up button)
         @SuppressLint("FullScreenIntentPolicy") Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 // Must have an icon called ic_launcher in your drawables
-                .setSmallIcon(R.drawable.ic_launcher)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("ALARM ACTIVE - CLUSTER")
                 .setContentText("Press 'STOP ALARM' to stop the sound.")
                 .setPriority(NotificationCompat.PRIORITY_MAX) // Maximum Priority
