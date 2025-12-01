@@ -41,6 +41,7 @@ public class AlarmSoundService extends Service {
         );
     }
 
+    @SuppressLint("ForegroundServiceType")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 

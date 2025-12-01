@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ComponentName;
+import android.os.Build;
 
 public class AlarmReceiver extends BroadcastReceiver{
 
@@ -17,7 +18,9 @@ public class AlarmReceiver extends BroadcastReceiver{
         serviceIntent.putExtra("TONE_URI", toneUri);
 
         // 3. Start the service in foreground
-        context.startForegroundService(serviceIntent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent);
+        }
 
     }
 }

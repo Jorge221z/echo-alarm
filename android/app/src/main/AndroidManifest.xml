@@ -23,6 +23,14 @@
     </activity>
 
       <receiver android:name=".modules.AlarmReceiver" android:enabled="true" android:exported="false" />
+      <service android:name=".modules.AlarmSoundService" android:enabled="true" android:exported="false" />
+
+      <activity
+          android:name=".modules.AlarmScreenActivity"
+          android:showOnLockScreen="true"
+          android:turnScreenOn="true"
+          android:exported="false"
+          android:theme="@style/Theme.AppCompat.NoActionBar" />
 
   </application>
 </manifest>
