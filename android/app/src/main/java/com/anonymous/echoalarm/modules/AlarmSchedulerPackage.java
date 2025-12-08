@@ -16,18 +16,15 @@ public class AlarmSchedulerPackage implements ReactPackage {
 
     @NonNull
     @Override
-    public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
-        List<NativeModule> modules = new ArrayList<>();
-
-        // Register the Module
-        modules.add(new AlarmSchedulerModule(reactContext));
-
-        return modules;
+    public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
+        return Collections.emptyList();
     }
 
-    @NonNull
     @Override
-    public List<ViewManager> createViewManagers(@NonNull ReactApplicationContext reactContext) {
-        return Collections.emptyList();
+    public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
+        List<NativeModule> modules = new ArrayList<>();
+        // Registra el módulo que acabamos de crear
+        modules.add(new AlarmSchedulerModule(reactContext));
+        return modules;
     }
 }
