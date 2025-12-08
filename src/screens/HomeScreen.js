@@ -5,11 +5,14 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { NativeModules } from 'react-native';
+
 
 
 export default function HomeScreen({ navigation, tonePool, setTonePool }) {
 
   const [wakeTime, setWakeTime] = useState(new Date());
+
   const handleTimeChange = (newDate) => {
     setWakeTime(newDate);
   }
@@ -51,21 +54,36 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     }
   }
 
+  const { AlarmScheduler } = NativeModules;
+
   const handleClusterActivation = async () => {
+
+    const now = new Date();
+
+    const targetDate = new Date();
+    targetDate.setHours(wakeTime.getHours());
+    targetDate.setMinutes(wakeTime.getMinutes());
+    targetDate.setSeconds(0); // Increase precision to the second
+    targetDate.setMilliseconds(0);
+
+    if (targetDate <= now) {
+      // The alarm time is earlier than now, set for the next day then
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
     
     const alarmProfile = {
-    wakeTime: wakeTime.toISOString(),
+    wakeTime: targetDate.toISOString(),
     interval: interval,
     alarmCount: alarmCount,
     tonePool: tonePool // Array of {name, uri}
   };
 
-
+console.log("Módulos Nativos disponibles:", Object.keys(NativeModules));
     try {
       await AsyncStorage.setItem('ALARM_PROFILE', JSON.stringify(alarmProfile));
-      console.log("Saving alarm profile, ready to be sent to the native module: ", alarmProfile);
+      console.log("Saving alarm profile, ready to be sent to the native java module: ", alarmProfile);
 
-      // AlarmSchedulerModule.setAlarmCluster(perfilJSON);
+      AlarmScheduler.setAlarmCluster(alarmProfile);
       
     } catch (error) {
       console.error("Error saving alarm profile: ", error);

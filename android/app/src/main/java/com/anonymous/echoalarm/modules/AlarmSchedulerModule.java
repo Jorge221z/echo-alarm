@@ -28,7 +28,7 @@ public class AlarmSchedulerModule extends ReactContextBaseJavaModule {
     @NonNull
     @Override
     public String getName() {
-        return "";
+        return "AlarmScheduler";
     }
 
     @ReactMethod
