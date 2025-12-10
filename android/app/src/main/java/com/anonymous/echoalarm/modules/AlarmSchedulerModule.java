@@ -15,6 +15,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 
+import java.time.Instant;
 import java.util.Objects;
 
 public class AlarmSchedulerModule extends ReactContextBaseJavaModule {
@@ -80,8 +81,21 @@ public class AlarmSchedulerModule extends ReactContextBaseJavaModule {
     private void scheduleAlarms(String wakeTimeIso, int interval, int alarmCount, ReadableArray tonePool) {
         AlarmManager alarmManager = (AlarmManager) reactContext.getSystemService(Context.ALARM_SERVICE);
 
-        long triggerTimeMs = System.currentTimeMillis() + 60000;
-        // ISO to millis
+        long triggerTimeMs = 0;
+
+        // --- CORRECCIÓN DE PARSEO ---
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                // Instant.parse es mucho más robusto para formatos UTC ("Z")
+                triggerTimeMs = Instant.parse(wakeTimeIso).toEpochMilli();
+            } else {
+                // Fallback para móviles muy viejos (opcional)
+                triggerTimeMs = System.currentTimeMillis() + 60000;
+            }
+        } catch (Exception e) {
+            Log.e("AlarmScheduler", "Error parseando fecha: " + e.getMessage());
+            triggerTimeMs = System.currentTimeMillis() + 60000; // Solo si falla, usa el minuto
+        }
 
         for (int i = 0; i < alarmCount; i++) {
             long currentTriggerTime = triggerTimeMs + ((long) i * interval * 60 * 1000);

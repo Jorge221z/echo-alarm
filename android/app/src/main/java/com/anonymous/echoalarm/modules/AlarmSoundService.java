@@ -65,7 +65,7 @@ public class AlarmSoundService extends Service {
         // The Intent we want to execute in full screen (our alarm dismissal UI)
         Intent fullScreenIntent = new Intent(this, AlarmScreenActivity.class);
         // Flags to ensure the Activity launches correctly over other screens
-        fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        fullScreenIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
 
         // PendingIntent: Allows the operating system to launch the Activity
         PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
@@ -84,6 +84,7 @@ public class AlarmSoundService extends Service {
                 .setContentText("Press 'STOP ALARM' to stop the sound.")
                 .setPriority(NotificationCompat.PRIORITY_MAX) // Maximum Priority
                 .setCategory(Notification.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 // THIS IS WHAT TURNS ON THE SCREEN AND SHOWS IT OVER THE LOCK SCREEN
                 .setFullScreenIntent(fullScreenPendingIntent, true)
                 .build();
@@ -91,6 +92,12 @@ public class AlarmSoundService extends Service {
         // ------------------ 3. FOREGROUND SERVICE LAUNCH ------------------
         // Calls this method and attaches the notification. This is what prevents Android from killing the service!
         startForeground(1, notification);
+
+        try {
+            startActivity(fullScreenIntent);
+        } catch (Exception e) {
+            Log.e("AlarmSoundService", "Fallo al forzar activity: " + e.getMessage());
+        }
 
         // ------------------ 4. MEDIA PLAYBACK START (Media Player) ------------------
         try {
@@ -116,7 +123,6 @@ public class AlarmSoundService extends Service {
         } catch (Exception e) {
             Log.e("AlarmSoundService", "Error in media playback: " + e.getMessage());
         }
-
 
         // START_STICKY: Tells Android that, if the system kills the service, try to restart it
         return START_STICKY;
