@@ -78,7 +78,6 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     tonePool: tonePool // Array of {name, uri}
   };
 
-console.log("Módulos Nativos disponibles:", Object.keys(NativeModules));
     try {
       await AsyncStorage.setItem('ALARM_PROFILE', JSON.stringify(alarmProfile));
       console.log("Saving alarm profile, ready to be sent to the native java module: ", alarmProfile);
