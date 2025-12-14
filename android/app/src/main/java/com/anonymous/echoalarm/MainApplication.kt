@@ -18,7 +18,6 @@ import expo.modules.ReactNativeHostWrapper
 
 import com.anonymous.echoalarm.modules.AlarmSchedulerPackage
 import com.anonymous.echoalarm.modules.OverlayPermissionPackage
-import com.facebook.react.BuildConfig
 
 class MainApplication : Application(), ReactApplication {
 
