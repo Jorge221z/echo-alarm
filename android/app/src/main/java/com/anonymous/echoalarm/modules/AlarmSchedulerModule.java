@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -14,6 +15,9 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -42,18 +46,7 @@ public class AlarmSchedulerModule extends ReactContextBaseJavaModule {
         ReadableArray tonePool = profileJSON.getArray("tonePool");
 
         // Persistence
-        SharedPreferences prefs = reactContext.getSharedPreferences("ClusterAlarmPrefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("wakeTime", wakeTimeIso);
-        editor.putInt("interval", interval);
-        editor.putInt("alarmCount", alarmCount);
-
-        // URI save
-        if (tonePool != null && tonePool.size() > 0) {
-            String firstToneUri = Objects.requireNonNull(tonePool.getMap(0)).getString("uri");
-            editor.putString("savedToneUri", firstToneUri);
-        }
-        editor.apply();
+        saveAlarmData(wakeTimeIso, interval, alarmCount, tonePool);
 
         // Schedule the tasks
         scheduleAlarms(wakeTimeIso, interval, alarmCount, tonePool);
@@ -85,7 +78,7 @@ public class AlarmSchedulerModule extends ReactContextBaseJavaModule {
 
         // --- CORRECCIÓN DE PARSEO ---
         try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 // Instant.parse es mucho más robusto para formatos UTC ("Z")
                 triggerTimeMs = Instant.parse(wakeTimeIso).toEpochMilli();
             } else {
@@ -126,4 +119,47 @@ public class AlarmSchedulerModule extends ReactContextBaseJavaModule {
         }
 
     }
+
+    private void saveAlarmData(String wakeTimeIso, int interval, int alarmCount, ReadableArray tonePool) {
+        SharedPreferences sharedPreferences = reactContext.getSharedPreferences("EchoAlarmPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        editor.putString("wakeTime", wakeTimeIso);
+        editor.putInt("interval", interval);
+        editor.putInt("alarmCount", alarmCount);
+
+        // --- MEJORA: Serialización segura con org.json ---
+        JSONArray jsonArray = new JSONArray();
+
+        if (tonePool != null) {
+            for (int i = 0; i < tonePool.size(); i++) {
+                try {
+                    ReadableMap toneMap = tonePool.getMap(i);
+                    JSONObject jsonObject = new JSONObject();
+
+                    // Guardamos la URI de forma segura
+                    if (toneMap != null && toneMap.hasKey("uri")) {
+                        jsonObject.put("uri", toneMap.getString("uri"));
+                    }
+
+
+                    if (toneMap != null && toneMap.hasKey("name")) {
+                        jsonObject.put("name", toneMap.getString("name"));
+                    }
+
+                    jsonArray.put(jsonObject);
+                } catch (Exception e) {
+                    Log.e("AlarmScheduler", "Error al guardar tono JSON: " + e.getMessage());
+                }
+            }
+        }
+        // Guardamos el array convertido a String de forma segura
+        editor.putString("tonePool", jsonArray.toString());
+
+        editor.putBoolean("isAlarmActive", true);
+        editor.apply();
+
+        Log.d("AlarmScheduler", "Datos guardados en SharedPreferences para reinicio.");
+    }
+
 }
