@@ -154,7 +154,11 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
 };
 
   useEffect(() => {
-    checkAndRequestOverlayPermission();
+    if (Platform.OS === 'android' && OverlayPermissionModule) {
+      checkAndRequestOverlayPermission();
+    } else {
+      console.error("Overlay permission check skipped: Not Android or module not available.");
+    }
   }, []);
 
 
