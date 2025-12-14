@@ -1,11 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, Platform, Alert, NativeModules } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import { NativeModules } from 'react-native';
 
 
 
@@ -54,7 +52,7 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     }
   }
 
-  const { AlarmScheduler } = NativeModules;
+  const { AlarmScheduler, OverlayPermissionModule } = NativeModules;
 
   const handleClusterActivation = async () => {
 
@@ -126,6 +124,37 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     };
 
     fetchAlarmProfile();
+  }, []);
+
+  const checkAndRequestOverlayPermission = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      console.log("Checking overlay permission...");
+      const hasPermission = await OverlayPermissionModule.hasPermission();
+      console.log("Overlay permission status: ", hasPermission);
+      if (!hasPermission) {
+        Alert.alert(
+          "Permiso Requerido",
+          "Para que la alarma suene y se muestre correctamente sobre otras apps, necesitas activar este permiso.",
+          [
+            { text: "Cancelar", style: "cancel" },
+            { 
+              text: "Activar", 
+              onPress: () => OverlayPermissionModule.requestPermission() 
+            }
+          ]
+        );
+      } else {
+        console.log("Overlay permission already granted.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+};
+
+  useEffect(() => {
+    checkAndRequestOverlayPermission();
   }, []);
 
 
