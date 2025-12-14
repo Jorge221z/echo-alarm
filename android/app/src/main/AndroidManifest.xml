@@ -12,6 +12,8 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -43,6 +45,19 @@
           android:turnScreenOn="true"
           android:exported="false"
           android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+      <receiver
+          android:name=".modules.BootReceiver"
+          android:enabled="true"
+          android:exported="true">
+      <intent-filter>
+          <action android:name="android.intent.action.BOOT_COMPLETED" />
+          <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+          <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+
+          <action android:name="com.anonymous.echoalarm.TEST_BOOT" />
+      </intent-filter>
+      </receiver>
 
   </application>
 </manifest>
