@@ -17,6 +17,8 @@ import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
 import com.anonymous.echoalarm.modules.AlarmSchedulerPackage
+import com.anonymous.echoalarm.modules.OverlayPermissionPackage
+import com.facebook.react.BuildConfig
 
 class MainApplication : Application(), ReactApplication {
 
@@ -28,6 +30,7 @@ class MainApplication : Application(), ReactApplication {
               // Packages that cannot be autolinked yet can be added manually here, for example:
               // add(MyReactNativePackage())
                 add(AlarmSchedulerPackage())
+                add(OverlayPermissionPackage())
             }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
