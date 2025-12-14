@@ -132,7 +132,7 @@ export default function TonePoolScreen({ navigation, tonePool, setTonePool }) {
     const newTones = selectedTones.map(tone => ({
       id: tone.id,
       name: tone.name,
-      uri: tone.source, // Using 'source' as 'uri' for consistency
+      uri: tone.uri,
       isDefault: true
     }));
 

@@ -12,6 +12,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.util.Log;
 
 
@@ -105,20 +106,23 @@ public class AlarmSoundService extends Service {
                 // Retrieve the URI that AlarmReceiver passed from the Intent
                 String toneUriString = intent.getStringExtra("TONE_URI");
 
+                Uri toneUri = null;
                 // If the URI is not null, we load the audio from the user's path
-                if (toneUriString != null) {
-                    Uri toneUri = Uri.parse(toneUriString);
-                    // setDataSource: Loads the audio file from the URI
-                    mediaPlayer.setDataSource(this, toneUri);
-                    mediaPlayer.setLooping(true);
+                if (toneUriString != null && !toneUriString.isEmpty()) {
+                    toneUri = Uri.parse(toneUriString);
 
-                    // Prepare and then start (asynchronous to not block the main thread)
-                    mediaPlayer.prepareAsync();
-                    mediaPlayer.setOnPreparedListener(MediaPlayer::start);
                 } else {
-                    // Fallback if there's no URI (optional: use a default tone)
-                    Log.e("AlarmSoundService", "TONE_URI is null. Cannot play tone.");
+                    toneUri = Settings.System.DEFAULT_ALARM_ALERT_URI;
+                    Log.e("AlarmSoundService", "TONE_URI is null. Cannot play tone. Fallback to default tone");
                 }
+
+                mediaPlayer.setDataSource(this, toneUri);
+                mediaPlayer.setLooping(true);
+
+                // Prepare and then start (asynchronous to not block the main thread)
+                mediaPlayer.prepareAsync();
+                mediaPlayer.setOnPreparedListener(MediaPlayer::start);
+                
             }
         } catch (Exception e) {
             Log.e("AlarmSoundService", "Error in media playback: " + e.getMessage());

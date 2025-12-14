@@ -73,8 +73,8 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     
     const alarmProfile = {
     wakeTime: targetDate.toISOString(),
-    interval: interval,
-    alarmCount: alarmCount,
+    interval: parseInt(interval) || 3,
+    alarmCount: parseInt(alarmCount) || 3,
     tonePool: tonePool // Array of {name, uri}
   };
 
