@@ -121,7 +121,7 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
         setWakeTime(new Date(perfil.wakeTime));
         setInterval(perfil.interval);
         setAlarmCount(perfil.alarmCount);
-        setSelectedTones(perfil.tonePool || []);
+        setTonePool(perfil.tonePool || []);
       }
     };
 
