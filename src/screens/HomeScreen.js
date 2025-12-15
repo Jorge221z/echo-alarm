@@ -90,8 +90,21 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
   }
 
   const handleClusterDeactivation = async () => {
-    // TODO : Implement alarm cancellation logic here
-    console.log("Cluster Deactivated");
+    try {
+      // Java module call to cancel alarms
+      await AlarmScheduler.cancelAllAlarms();
+      console.log("All alarms cancelled via native module.");
+
+      // Clean async storage
+      await AsyncStorage.removeItem('ALARM_PROFILE');
+      console.log("Alarm profile removed from AsyncStorage.");
+
+      Alert.alert("Cluster Deactivated", "All alarms in the cluster have been cancelled.");
+
+    } catch (error) {
+      console.error("Error cancelling alarm cluster: ", error);
+    }
+    console.log("Cluster Fully Deactivated");
   }
 
   const loadAlarmProfile = async () => {
