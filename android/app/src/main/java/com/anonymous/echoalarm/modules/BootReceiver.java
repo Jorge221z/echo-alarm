@@ -103,7 +103,7 @@ public class BootReceiver extends BroadcastReceiver {
                 }
             }
 
-            Intent alarmIntent = new Intent(context, AlarmSoundService.class);
+            Intent alarmIntent = new Intent(context, AlarmReceiver.class);
             // AHORA SÍ PASAMOS LA URI RECUPERADA
             if (!savedToneUri.isEmpty()) {
                 alarmIntent.putExtra("TONE_URI", savedToneUri);
@@ -120,7 +120,7 @@ public class BootReceiver extends BroadcastReceiver {
                 // Si esta iteración específica ya pasó, la saltamos
                 if (currentTriggerTime < System.currentTimeMillis()) continue;
 
-                PendingIntent pendingIntent = PendingIntent.getService(
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(
                         context,
                         i, // ID único por iteración
                         alarmIntent,
