@@ -1,9 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, Platform, Modal, NativeModules, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Platform, Modal, NativeModules, Animated } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import TimePickerModal from '../components/modals/TimePickerModal';
 
 
 
@@ -36,24 +36,16 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     }).start(() => setModalVisible(false));
   };
 
+  // Estado para el modal de selección de hora
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
+
   const handleTimeChange = (newDate) => {
     setWakeTime(newDate);
-  }
+  };
 
-  // Function to open the time picker
   const openTimePicker = () => {
-    DateTimePickerAndroid.open({
-      value: wakeTime,   // Current time already set
-      onChange: (event, selectedDate) => {
-        const currentDate = selectedDate || wakeTime;
-        if (selectedDate) { // Only update if a date is selected
-          handleTimeChange(currentDate);
-        }
-      },
-      mode: 'time',
-      is24Hour: true,
-    });
-  }
+    setTimePickerVisible(true);
+  };
 
   const [interval, setIntervalValue] = useState(5);
   const handleIntervalChange = (text) => {
@@ -259,15 +251,9 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
         <View style={styles.inputSection}>
           <Text style={styles.secoundaryText}>Número de alarmas</Text>
           <View style={styles.stepperContainer}>
-            <TextInput
-              style={[styles.input, isClusterActive && styles.inputDisabled]}
-              keyboardType="numeric"
-              onChangeText={handleAlarmCountChange}
-              value={alarmCount.toString()}
-              placeholder="Cantidad"
-              placeholderTextColor="#CCCCCC"
-              editable={!isClusterActive}
-            />
+            <View style={[styles.valueDisplay, isClusterActive && styles.inputDisabled]}>
+              <Text style={styles.valueDisplayText}>{alarmCount}</Text>
+            </View>
             <View style={styles.stepperButtons}>
               <TouchableOpacity 
                 onPress={incrementAlarmCount} 
@@ -290,15 +276,9 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
         <View style={styles.inputSection}>
           <Text style={styles.secoundaryText}>Intervalo (minutos)</Text>
           <View style={styles.stepperContainer}>
-            <TextInput
-              style={[styles.input, isClusterActive && styles.inputDisabled]}
-              keyboardType="numeric"
-              onChangeText={handleIntervalChange}
-              value={interval.toString()}
-              placeholder="Intervalo"
-              placeholderTextColor="#CCCCCC"
-              editable={!isClusterActive}
-            />
+            <View style={[styles.valueDisplay, isClusterActive && styles.inputDisabled]}>
+              <Text style={styles.valueDisplayText}>{interval}</Text>
+            </View>
             <View style={styles.stepperButtons}>
               <TouchableOpacity 
                 onPress={incrementInterval} 
@@ -334,6 +314,14 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
           style={styles.tonePoolButton}>
           <Text style={styles.buttonText}>🎵 Gestionar Tonos</Text>
         </TouchableOpacity>
+
+        {/* Modal de selección de hora */}
+        <TimePickerModal
+          visible={timePickerVisible}
+          onClose={() => setTimePickerVisible(false)}
+          onConfirm={handleTimeChange}
+          initialTime={wakeTime}
+        />
 
         {/* Modal Personalizado */}
         <Modal
@@ -455,17 +443,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  input: {
-    height: 45,
-    borderWidth: 1,
+  valueDisplay: {
+    height: 50,
     width: 80,
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 12,
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  valueDisplayText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
   },
   inputDisabled: {
     opacity: 0.5,
