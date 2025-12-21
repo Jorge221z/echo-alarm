@@ -1,8 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, Platform, Alert, NativeModules } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, Platform, Modal, NativeModules, Animated } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -10,6 +10,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function HomeScreen({ navigation, tonePool, setTonePool }) {
 
   const [wakeTime, setWakeTime] = useState(new Date());
+  const [isClusterActive, setIsClusterActive] = useState(false);
+  
+  // Estado para modal personalizado
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalContent, setModalContent] = useState({ type: 'success', title: '', message: '', buttonText: '' });
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  const showCustomModal = (type, title, message, buttonText = 'OK') => {
+    setModalContent({ type, title, message, buttonText });
+    setModalVisible(true);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+  };
+
+  const hideModal = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => setModalVisible(false));
+  };
 
   const handleTimeChange = (newDate) => {
     setWakeTime(newDate);
@@ -30,27 +55,31 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     });
   }
 
-  const [interval, setInterval] = useState(5);
+  const [interval, setIntervalValue] = useState(5);
   const handleIntervalChange = (text) => {
     const numericalValue = parseInt(text);
-    if (!isNaN(numericalValue)) {
-      setInterval(numericalValue);
+    if (!isNaN(numericalValue) && numericalValue > 0) {
+      setIntervalValue(numericalValue);
     } else {
-      setInterval(1); // Default to 1 if input is invalid
+      setIntervalValue(1); // Default to 1 if input is invalid
       console.log("Invalid input for interval | Falling back to 1");
     }
   }
+  const incrementInterval = () => setIntervalValue(prev => prev + 1);
+  const decrementInterval = () => setIntervalValue(prev => Math.max(1, prev - 1));
 
   const [alarmCount, setAlarmCount] = useState(5);
   const handleAlarmCountChange = (text) => {
     const numericalValue = parseInt(text);
-    if (!isNaN(numericalValue)) {
+    if (!isNaN(numericalValue) && numericalValue > 0) {
       setAlarmCount(numericalValue);
     } else {
       setAlarmCount(1); // Default to 1 if input is invalid
       console.log("Invalid input for alarm count | Falling back to 1");
     }
   }
+  const incrementAlarmCount = () => setAlarmCount(prev => prev + 1);
+  const decrementAlarmCount = () => setAlarmCount(prev => Math.max(1, prev - 1));
 
   const { AlarmScheduler, OverlayPermissionModule } = NativeModules;
 
@@ -81,9 +110,33 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
       console.log("Saving alarm profile, ready to be sent to the native java module: ", alarmProfile);
 
       AlarmScheduler.setAlarmCluster(alarmProfile);
+      setIsClusterActive(true);
+      
+      // Calcular hora de última alarma
+      const lastAlarmTime = new Date(targetDate);
+      lastAlarmTime.setMinutes(lastAlarmTime.getMinutes() + (interval * (alarmCount - 1)));
+      const lastTimeStr = lastAlarmTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const firstTimeStr = wakeTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      
+      showCustomModal(
+        'success',
+        '¡Clúster Activado!',
+        `🔔 ${alarmCount} alarmas programadas\n\n` +
+        `⏰ Primera: ${firstTimeStr}\n` +
+        `⏰ Última: ${lastTimeStr}\n` +
+        `⏱️ Intervalo: ${interval} min\n\n` +
+        `🎵 Tonos: ${tonePool.length > 0 ? tonePool.length + ' en rotación' : 'Por defecto'}`,
+        '¡Perfecto!'
+      );
       
     } catch (error) {
       console.error("Error saving alarm profile: ", error);
+      showCustomModal(
+        'error',
+        'Error',
+        'No se pudo activar el clúster.\nInténtalo de nuevo.',
+        'Entendido'
+      );
     }
 
     console.log("Cluster Activated");
@@ -99,7 +152,13 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
       await AsyncStorage.removeItem('ALARM_PROFILE');
       console.log("Alarm profile removed from AsyncStorage.");
 
-      Alert.alert("Cluster Deactivated", "All alarms in the cluster have been cancelled.");
+      setIsClusterActive(false);
+      showCustomModal(
+        'deactivate',
+        'Clúster Desactivado',
+        'Todas las alarmas han sido canceladas.\n\n💤 Configura uno nuevo cuando quieras.',
+        'OK'
+      );
 
     } catch (error) {
       console.error("Error cancelling alarm cluster: ", error);
@@ -130,9 +189,10 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
       const perfil = await loadAlarmProfile();
       if (perfil) {
         setWakeTime(new Date(perfil.wakeTime));
-        setInterval(perfil.interval);
+        setIntervalValue(perfil.interval);
         setAlarmCount(perfil.alarmCount);
         setTonePool(perfil.tonePool || []);
+        setIsClusterActive(true); // Si hay perfil guardado, hay alarmas activas
       }
     };
 
@@ -182,48 +242,145 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
 
       <View style={styles.container}>
 
-        <TouchableOpacity onPress={openTimePicker}>
-          <Text style={styles.mainText}>Wake up time {"\n"} {wakeTime.toLocaleTimeString()}</Text>
+        {/* Indicador de estado */}
+        <View style={[styles.statusBadge, isClusterActive ? styles.statusActive : styles.statusInactive]}>
+          <Text style={styles.statusText}>
+            {isClusterActive ? '🔔 Alarma Activa' : '😴 Sin Alarmas'}
+          </Text>
+        </View>
+
+        <TouchableOpacity onPress={openTimePicker} disabled={isClusterActive}>
+          <Text style={[styles.mainText, isClusterActive && styles.disabledText]}>
+            Hora de despertar{"\n"}{wakeTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+          </Text>
         </TouchableOpacity>
 
 
         <View style={styles.inputSection}>
-          <Text style={styles.secoundaryText}>Alarm count for tomorrow: {alarmCount}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            onChangeText={handleAlarmCountChange}
-            value={alarmCount.toString()}
-            placeholder="Enter count"
-            placeholderTextColor="#CCCCCC"
-          />
+          <Text style={styles.secoundaryText}>Número de alarmas</Text>
+          <View style={styles.stepperContainer}>
+            <TextInput
+              style={[styles.input, isClusterActive && styles.inputDisabled]}
+              keyboardType="numeric"
+              onChangeText={handleAlarmCountChange}
+              value={alarmCount.toString()}
+              placeholder="Cantidad"
+              placeholderTextColor="#CCCCCC"
+              editable={!isClusterActive}
+            />
+            <View style={styles.stepperButtons}>
+              <TouchableOpacity 
+                onPress={incrementAlarmCount} 
+                style={[styles.stepperButton, isClusterActive && styles.stepperButtonDisabled]}
+                disabled={isClusterActive}
+              >
+                <Text style={styles.stepperButtonText}>▲</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={decrementAlarmCount} 
+                style={[styles.stepperButton, isClusterActive && styles.stepperButtonDisabled]}
+                disabled={isClusterActive}
+              >
+                <Text style={styles.stepperButtonText}>▼</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         <View style={styles.inputSection}>
-          <Text style={styles.secoundaryText}>Interval: {interval}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            onChangeText={handleIntervalChange}
-            value={interval.toString()}
-            placeholder="Enter interval"
-            placeholderTextColor="#CCCCCC"
-          />
+          <Text style={styles.secoundaryText}>Intervalo (minutos)</Text>
+          <View style={styles.stepperContainer}>
+            <TextInput
+              style={[styles.input, isClusterActive && styles.inputDisabled]}
+              keyboardType="numeric"
+              onChangeText={handleIntervalChange}
+              value={interval.toString()}
+              placeholder="Intervalo"
+              placeholderTextColor="#CCCCCC"
+              editable={!isClusterActive}
+            />
+            <View style={styles.stepperButtons}>
+              <TouchableOpacity 
+                onPress={incrementInterval} 
+                style={[styles.stepperButton, isClusterActive && styles.stepperButtonDisabled]}
+                disabled={isClusterActive}
+              >
+                <Text style={styles.stepperButtonText}>▲</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={decrementInterval} 
+                style={[styles.stepperButton, isClusterActive && styles.stepperButtonDisabled]}
+                disabled={isClusterActive}
+              >
+                <Text style={styles.stepperButtonText}>▼</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
-        <TouchableOpacity onPress={handleClusterActivation} style={styles.mainButton}>
-          <Text style={styles.buttonText}>Activate Cluster</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleClusterDeactivation} style={styles.secondaryButton}>
-          <Text style={styles.buttonText}>Deactivate Cluster</Text>
-        </TouchableOpacity>
+        {/* Botón principal condicional */}
+        {!isClusterActive ? (
+          <TouchableOpacity onPress={handleClusterActivation} style={styles.mainButton}>
+            <Text style={styles.buttonText}>Activar Clúster</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={handleClusterDeactivation} style={styles.deactivateButton}>
+            <Text style={styles.buttonText}>Desactivar Clúster</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity 
           onPress={() => {navigation.navigate('TonePool'); console.log("Navigating to Tone Pool")}} 
           style={styles.tonePoolButton}>
-          <Text style={styles.buttonText}>Manage Tone Pool</Text>
+          <Text style={styles.buttonText}>🎵 Gestionar Tonos</Text>
         </TouchableOpacity>
+
+        {/* Modal Personalizado */}
+        <Modal
+          transparent={true}
+          visible={modalVisible}
+          animationType="fade"
+          onRequestClose={hideModal}
+        >
+          <View style={styles.modalOverlay}>
+            <Animated.View style={[
+              styles.modalContainer,
+              { transform: [{ scale: scaleAnim }] }
+            ]}>
+              <LinearGradient
+                colors={
+                  modalContent.type === 'success' 
+                    ? ['#4CAF50', '#45a049'] 
+                    : modalContent.type === 'error'
+                    ? ['#E74C3C', '#c0392b']
+                    : ['#6B5CE7', '#5f61e6']
+                }
+                style={styles.modalHeader}
+              >
+                <Text style={styles.modalIcon}>
+                  {modalContent.type === 'success' ? '✅' : modalContent.type === 'error' ? '❌' : '🛑'}
+                </Text>
+                <Text style={styles.modalTitle}>{modalContent.title}</Text>
+              </LinearGradient>
+              
+              <View style={styles.modalBody}>
+                <Text style={styles.modalMessage}>{modalContent.message}</Text>
+                
+                <TouchableOpacity 
+                  onPress={hideModal}
+                  style={[
+                    styles.modalButton,
+                    modalContent.type === 'success' && styles.modalButtonSuccess,
+                    modalContent.type === 'error' && styles.modalButtonError,
+                    modalContent.type === 'deactivate' && styles.modalButtonDeactivate,
+                  ]}
+                >
+                  <Text style={styles.modalButtonText}>{modalContent.buttonText}</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
 
         <StatusBar style="auto" />
       </View>
@@ -238,11 +395,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 100,
+    paddingTop: 60,
+  },
+  statusBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  statusActive: {
+    backgroundColor: 'rgba(76, 175, 80, 0.3)',
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  statusInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  statusText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   mainText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 0.5,
@@ -250,57 +428,91 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: 25,
+    paddingHorizontal: 30,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     overflow: 'hidden',
   },
+  disabledText: {
+    opacity: 0.6,
+  },
   secoundaryText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
     letterSpacing: 0.5,
     paddingHorizontal: 20,
+    marginBottom: 8,
   },
   inputSection: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 25,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
+    height: 45,
     borderWidth: 1,
-    width: 100,
+    width: 80,
     color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
+  inputDisabled: {
+    opacity: 0.5,
+  },
+  stepperButtons: {
+    marginLeft: 10,
+  },
+  stepperButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  stepperButtonDisabled: {
+    opacity: 0.4,
+  },
+  stepperButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   mainButton: {
-    backgroundColor: '#FF6347', // Un color vibrante para el botón principal
-    paddingVertical: 15,
-    paddingHorizontal: 40,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    paddingHorizontal: 45,
     borderRadius: 30,
-    marginTop: 50,
-    elevation: 8, // Sombra para Android
-    shadowColor: '#FF6347', // Sombra para iOS
+    marginTop: 40,
+    elevation: 8,
+    shadowColor: '#4CAF50',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
   },
-  secondaryButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Estilo menos prominente
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 20,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+  deactivateButton: {
+    backgroundColor: '#E74C3C',
+    paddingVertical: 16,
+    paddingHorizontal: 45,
+    borderRadius: 30,
+    marginTop: 40,
+    elevation: 8,
+    shadowColor: '#E74C3C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
   buttonText: {
     color: '#FFFFFF',
@@ -310,12 +522,81 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   tonePoolButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginTop: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    marginTop: 25,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 10,
-  }
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 15,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a2e',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+  },
+  modalHeader: {
+    paddingVertical: 25,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    fontSize: 48,
+    marginBottom: 10,
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  modalBody: {
+    padding: 25,
+    alignItems: 'center',
+  },
+  modalMessage: {
+    color: '#CCCCCC',
+    fontSize: 15,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  modalButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 50,
+    borderRadius: 25,
+    minWidth: 150,
+  },
+  modalButtonSuccess: {
+    backgroundColor: '#4CAF50',
+  },
+  modalButtonError: {
+    backgroundColor: '#E74C3C',
+  },
+  modalButtonDeactivate: {
+    backgroundColor: '#6B5CE7',
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
