@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, Platform, Modal, NativeModules, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Platform, Modal, NativeModules, Animated, Alert } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,11 +14,27 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
   
   // Estado para modal personalizado
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalContent, setModalContent] = useState({ type: 'success', title: '', message: '', buttonText: '' });
+  const [modalContent, setModalContent] = useState({ 
+    type: 'success', 
+    title: '', 
+    message: '', 
+    buttonText: '',
+    showSecondButton: false,
+    secondButtonText: '',
+    onSecondButtonPress: null
+  });
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
-  const showCustomModal = (type, title, message, buttonText = 'OK') => {
-    setModalContent({ type, title, message, buttonText });
+  const showCustomModal = (type, title, message, buttonText = 'OK', options = {}) => {
+    setModalContent({ 
+      type, 
+      title, 
+      message, 
+      buttonText,
+      showSecondButton: options.showSecondButton || false,
+      secondButtonText: options.secondButtonText || '',
+      onSecondButtonPress: options.onSecondButtonPress || null
+    });
     setModalVisible(true);
     Animated.spring(scaleAnim, {
       toValue: 1,
@@ -198,16 +214,20 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
       const hasPermission = await OverlayPermissionModule.hasPermission();
       console.log("Overlay permission status: ", hasPermission);
       if (!hasPermission) {
-        Alert.alert(
-          "Permiso Requerido",
-          "Para que la alarma suene y se muestre correctamente sobre otras apps, necesitas activar este permiso.",
-          [
-            { text: "Cancelar", style: "cancel" },
-            { 
-              text: "Activar", 
-              onPress: () => OverlayPermissionModule.requestPermission() 
+        showCustomModal(
+          'permission',
+          'Permiso Requerido',
+          '🔓 Para que la alarma suene y se muestre correctamente sobre otras apps, necesitas activar este permiso.\n\n' +
+          'Sin este permiso, la alarma no podrá despertarte cuando el teléfono esté bloqueado.',
+          'Cancelar',
+          {
+            showSecondButton: true,
+            secondButtonText: 'Activar',
+            onSecondButtonPress: () => {
+              OverlayPermissionModule.requestPermission();
+              hideModal();
             }
-          ]
+          }
         );
       } else {
         console.log("Overlay permission already granted.");
@@ -341,12 +361,16 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
                     ? ['#4CAF50', '#45a049'] 
                     : modalContent.type === 'error'
                     ? ['#E74C3C', '#c0392b']
+                    : modalContent.type === 'permission'
+                    ? ['#FF9800', '#F57C00']
                     : ['#6B5CE7', '#5f61e6']
                 }
                 style={styles.modalHeader}
               >
                 <Text style={styles.modalIcon}>
-                  {modalContent.type === 'success' ? '✅' : modalContent.type === 'error' ? '❌' : '🛑'}
+                  {modalContent.type === 'success' ? '✅' : 
+                   modalContent.type === 'error' ? '❌' : 
+                   modalContent.type === 'permission' ? '🔐' : '🛑'}
                 </Text>
                 <Text style={styles.modalTitle}>{modalContent.title}</Text>
               </LinearGradient>
@@ -354,17 +378,34 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
               <View style={styles.modalBody}>
                 <Text style={styles.modalMessage}>{modalContent.message}</Text>
                 
-                <TouchableOpacity 
-                  onPress={hideModal}
-                  style={[
-                    styles.modalButton,
-                    modalContent.type === 'success' && styles.modalButtonSuccess,
-                    modalContent.type === 'error' && styles.modalButtonError,
-                    modalContent.type === 'deactivate' && styles.modalButtonDeactivate,
-                  ]}
-                >
-                  <Text style={styles.modalButtonText}>{modalContent.buttonText}</Text>
-                </TouchableOpacity>
+                {modalContent.showSecondButton ? (
+                  <View style={styles.modalButtonsRow}>
+                    <TouchableOpacity 
+                      onPress={hideModal}
+                      style={styles.modalButtonSecondary}
+                    >
+                      <Text style={styles.modalButtonSecondaryText}>{modalContent.buttonText}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={modalContent.onSecondButtonPress}
+                      style={[styles.modalButton, styles.modalButtonPermission]}
+                    >
+                      <Text style={styles.modalButtonText}>{modalContent.secondButtonText}</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity 
+                    onPress={hideModal}
+                    style={[
+                      styles.modalButton,
+                      modalContent.type === 'success' && styles.modalButtonSuccess,
+                      modalContent.type === 'error' && styles.modalButtonError,
+                      modalContent.type === 'deactivate' && styles.modalButtonDeactivate,
+                    ]}
+                  >
+                    <Text style={styles.modalButtonText}>{modalContent.buttonText}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </Animated.View>
           </View>
@@ -575,6 +616,26 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     minWidth: 150,
   },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  modalButtonSecondary: {
+    paddingVertical: 14,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  modalButtonSecondaryText: {
+    color: '#AAAAAA',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   modalButtonSuccess: {
     backgroundColor: '#4CAF50',
   },
@@ -583,6 +644,9 @@ const styles = StyleSheet.create({
   },
   modalButtonDeactivate: {
     backgroundColor: '#6B5CE7',
+  },
+  modalButtonPermission: {
+    backgroundColor: '#FF9800',
   },
   modalButtonText: {
     color: '#FFFFFF',
