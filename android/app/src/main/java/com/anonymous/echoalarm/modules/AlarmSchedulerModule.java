@@ -162,4 +162,19 @@ public class AlarmSchedulerModule extends ReactContextBaseJavaModule {
         Log.d("AlarmScheduler", "Datos guardados en SharedPreferences para reinicio.");
     }
 
+    @ReactMethod
+    public void stopCurrentSound() {
+        try {
+            // Creamos un intent apuntando AL MISMO servicio que está sonando
+            Intent intent = new Intent(reactContext, AlarmSoundService.class);
+
+            // stopService le dice a Android: "Mata este servicio ya"
+            reactContext.stopService(intent);
+
+            Log.d("AlarmScheduler", "Orden de parar sonido enviada desde JS");
+        } catch (Exception e) {
+            Log.e("AlarmScheduler", "Error al intentar parar el sonido: " + e.getMessage());
+        }
+    }
+
 }

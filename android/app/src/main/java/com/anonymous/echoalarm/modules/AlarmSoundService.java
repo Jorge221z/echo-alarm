@@ -23,6 +23,7 @@ import com.anonymous.echoalarm.R;
 public class AlarmSoundService extends Service {
 
     private MediaPlayer mediaPlayer;
+    private static final String ACTION_DISMISS = "DISMISS_ALARM";
     
     @Override
     public void onCreate() {
@@ -42,9 +43,15 @@ public class AlarmSoundService extends Service {
         );
     }
 
-    @SuppressLint("ForegroundServiceType")
+    @SuppressLint({"ForegroundServiceType", "NotificationTrampoline"})
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
+        if (intent != null && ACTION_DISMISS.equals(intent.getAction())) {
+            Log.d("AlarmSoundService", "Stop media media player.");
+            stopSelf(); // Esto mata el servicio y para la música
+            return START_NOT_STICKY;
+        }
 
         // ------------------ 1. CHANNEL CREATION ------------------
         final String CHANNEL_ID = "CLUSTER_ALARM_CHANNEL";
@@ -77,17 +84,31 @@ public class AlarmSoundService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
+        // To allow the MediaPlayer stop
+        Intent dismissIntent = new Intent(this, AlarmSoundService.class);
+        dismissIntent.setAction(ACTION_DISMISS); // Usamos la constante que definiste arriba
+
+        PendingIntent dismissPendingIntent = PendingIntent.getService(
+                this,
+                1, // ID distinto al de arriba por si acaso
+                dismissIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
         // Build the Notification (the visible message and the invisible wake-up button)
         @SuppressLint("FullScreenIntentPolicy") Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 // Must have an icon called ic_launcher in your drawables
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("ALARM ACTIVE - CLUSTER")
-                .setContentText("Press 'STOP ALARM' to stop the sound.")
+                .setSmallIcon(R.drawable.button_stop_alarm)
+                .setContentTitle("ALARMA ACTIVADA")
+                .setContentText("Pulsa 'DETENER ALARMA' para parar el sonido")
                 .setPriority(NotificationCompat.PRIORITY_MAX) // Maximum Priority
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 // THIS IS WHAT TURNS ON THE SCREEN AND SHOWS IT OVER THE LOCK SCREEN
                 .setFullScreenIntent(fullScreenPendingIntent, true)
+
+                .addAction(R.drawable.button_stop_alarm, "DETENER ALARMA", dismissPendingIntent)
+
                 .build();
 
         // ------------------ 3. FOREGROUND SERVICE LAUNCH ------------------

@@ -51,5 +51,14 @@ public class AlarmScreenActivity extends AppCompatActivity {
             }
         });
     }
+    
+    @Override
+    public void onBackPressed() {
+        // 1. Kill the Sound Service(MediaPlayer)
+        Intent stopIntent = new Intent(this, AlarmSoundService.class);
+        stopService(stopIntent);
+
+        super.onBackPressed();
+    }
 
 }

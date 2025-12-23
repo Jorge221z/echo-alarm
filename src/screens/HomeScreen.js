@@ -156,6 +156,10 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
       await AlarmScheduler.cancelAllAlarms();
       console.log("All alarms cancelled via native module.");
 
+      // Kill the current sounding alarm if any
+      await AlarmScheduler.stopCurrentSound();
+      console.log("Current sounding alarm (if any) killed via native module.");
+
       // Clean async storage
       await AsyncStorage.removeItem('ALARM_PROFILE');
       console.log("Alarm profile removed from AsyncStorage.");
