@@ -165,21 +165,24 @@ export default function OnboardingScreen({ onComplete }) {
 
           const dotScale = scrollX.interpolate({
             inputRange,
-            outputRange: [1, 2.5, 1],
+            outputRange: [1, 1.5, 1],
             extrapolate: 'clamp',
           });
 
           const dotOpacity = scrollX.interpolate({
             inputRange,
-            outputRange: [0.4, 1, 0.4],
+            outputRange: [0.6, 1, 0.6],
             extrapolate: 'clamp',
           });
+
+          const isCompleted = index < currentIndex;
 
           return (
             <Animated.View
               key={index}
               style={[
                 styles.dot,
+                isCompleted && styles.dotCompleted,
                 { transform: [{ scaleX: dotScale }], opacity: dotOpacity },
               ]}
             />
@@ -313,10 +316,14 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   dot: {
+    width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: '#FFFFFF',
     marginHorizontal: 5,
+  },
+  dotCompleted: {
+    backgroundColor: '#4CAF50',
   },
   nextButton: {
     marginHorizontal: 40,
