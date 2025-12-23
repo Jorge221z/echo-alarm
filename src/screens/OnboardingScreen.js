@@ -7,6 +7,8 @@ import {
   Dimensions,
   Animated,
   FlatList,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,24 +21,36 @@ const onboardingData = [
     emoji: '⏰',
     title: '¡Bienvenido a Echo Alarm!',
     description: 'La alarma inteligente que te despierta de forma gradual con múltiples alarmas en clúster.',
+    type: 'info',
   },
   {
     id: '2',
     emoji: '🔔',
-    title: 'Clúster de Alarmas',
-    description: 'Programa varias alarmas con un intervalo personalizado. Si la primera no te despierta, ¡las siguientes lo harán!',
+    title: 'Permiso de Notificaciones',
+    description: 'Para mostrarte la alarma y permitirte detenerla desde la barra de estado, necesitamos permiso para enviar notificaciones.',
+    type: 'permission',
+    permissionType: 'notifications',
   },
   {
     id: '3',
-    emoji: '🎵',
-    title: 'Tonos en Rotación',
-    description: 'Añade tus canciones favoritas y cada alarma sonará con un tono diferente. ¡Nunca te acostumbrarás al mismo sonido!',
+    emoji: '📚',
+    title: 'Clúster de Alarmas',
+    description: 'Programa varias alarmas con un intervalo personalizado. Si la primera no te despierta, ¡las siguientes lo harán!',
+    type: 'info',
   },
   {
     id: '4',
+    emoji: '🎵',
+    title: 'Tonos en Rotación',
+    description: 'Añade tus canciones favoritas y cada alarma sonará con un tono diferente. ¡Nunca te acostumbrarás al mismo sonido!',
+    type: 'info',
+  },
+  {
+    id: '5',
     emoji: '🚀',
     title: '¡Empezamos!',
     description: 'Configura tu primera hora de despertar, elige cuántas alarmas quieres y el intervalo entre ellas. ¡Así de fácil!',
+    type: 'info',
   },
 ];
 
@@ -45,7 +59,37 @@ export default function OnboardingScreen({ onComplete }) {
   const flatListRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
-  const handleNext = () => {
+  const requestNotificationPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('Notification permission granted');
+          return true;
+        } else {
+          console.log('Notification permission denied');
+          return false;
+        }
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true; // Default behavior
+  };
+
+  const handleNext = async () => {
+    const currentSlide = onboardingData[currentIndex];
+    
+    // Si es una slide de permisos, pedir el permiso directamente
+    if (currentSlide.type === 'permission') {
+      if (currentSlide.permissionType === 'notifications') {
+        await requestNotificationPermission();
+      }
+    }
+    
     if (currentIndex < onboardingData.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
@@ -183,11 +227,15 @@ export default function OnboardingScreen({ onComplete }) {
       {/* Next/Start button */}
       <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
         <LinearGradient
-          colors={isLastSlide ? ['#4CAF50', '#45a049'] : ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+          colors={isLastSlide ? ['#4CAF50', '#45a049'] : 
+                  onboardingData[currentIndex]?.type === 'permission' ? ['#FF9800', '#F57C00'] :
+                  ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
           style={styles.nextButtonGradient}
         >
           <Text style={styles.nextButtonText}>
-            {isLastSlide ? '¡Comenzar!' : 'Siguiente'}
+            {isLastSlide ? '¡Comenzar!' : 
+             onboardingData[currentIndex]?.type === 'permission' ? 'Activar Permiso' :
+             'Siguiente'}
           </Text>
         </LinearGradient>
       </TouchableOpacity>

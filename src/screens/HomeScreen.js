@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, Platform, Modal, NativeModules, Animated, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Platform, Modal, NativeModules, Animated, Alert, PermissionsAndroid } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,7 +21,8 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     buttonText: '',
     showSecondButton: false,
     secondButtonText: '',
-    onSecondButtonPress: null
+    onSecondButtonPress: null,
+    onDismiss: null
   });
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
@@ -33,7 +34,8 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
       buttonText,
       showSecondButton: options.showSecondButton || false,
       secondButtonText: options.secondButtonText || '',
-      onSecondButtonPress: options.onSecondButtonPress || null
+      onSecondButtonPress: options.onSecondButtonPress || null,
+      onDismiss: options.onDismiss || null
     });
     setModalVisible(true);
     Animated.spring(scaleAnim, {
@@ -211,43 +213,94 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
     fetchAlarmProfile();
   }, []);
 
-  const checkAndRequestOverlayPermission = async () => {
-  if (Platform.OS === 'android') {
-    try {
-      console.log("Checking overlay permission...");
-      const hasPermission = await OverlayPermissionModule.hasPermission();
-      console.log("Overlay permission status: ", hasPermission);
-      if (!hasPermission) {
-        showCustomModal(
-          'permission',
-          'Permiso Requerido',
-          '🔓 Para que la alarma suene y se muestre correctamente sobre otras apps, necesitas activar este permiso.\n\n' +
-          'Sin este permiso, la alarma no podrá despertarte cuando el teléfono esté bloqueado.',
-          'Cancelar',
-          {
-            showSecondButton: true,
-            secondButtonText: 'Activar',
-            onSecondButtonPress: () => {
-              OverlayPermissionModule.requestPermission();
-              hideModal();
-            }
-          }
-        );
-      } else {
-        console.log("Overlay permission already granted.");
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-};
-
+  // Flujo secuencial de permisos: primero overlay, luego notificaciones
   useEffect(() => {
-    if (Platform.OS === 'android' && OverlayPermissionModule) {
-      checkAndRequestOverlayPermission();
-    } else {
-      console.error("Overlay permission check skipped: Not Android or module not available.");
-    }
+    const checkNotificationPermission = async () => {
+      if (Platform.Version >= 33) {
+        try {
+          const hasNotificationPermission = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+          );
+          
+          if (!hasNotificationPermission) {
+            showCustomModal(
+              'permission',
+              'Permiso de Notificaciones',
+              '🔔 Para que las alarmas te avisen correctamente, necesitamos permiso para enviarte notificaciones.\n\n' +
+              'Sin este permiso, las alarmas no podrán sonar.',
+              'Ahora no',
+              {
+                showSecondButton: true,
+                secondButtonText: 'Activar',
+                onSecondButtonPress: async () => {
+                  hideModal();
+                  await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                  );
+                }
+              }
+            );
+          } else {
+            console.log("Notification permission already granted.");
+          }
+        } catch (e) {
+          console.error("Error checking notification permission:", e);
+        }
+      }
+    };
+
+    const checkPermissionsSequentially = async () => {
+      if (Platform.OS !== 'android') {
+        console.log("Permission check skipped: Not Android.");
+        return;
+      }
+
+      // 1. Primero verificar permiso de Overlay
+      if (OverlayPermissionModule) {
+        try {
+          console.log("Checking overlay permission...");
+          const hasOverlayPermission = await OverlayPermissionModule.hasPermission();
+          console.log("Overlay permission status:", hasOverlayPermission);
+          
+          if (!hasOverlayPermission) {
+            // Mostrar modal para overlay
+            showCustomModal(
+              'permission',
+              'Permiso Requerido',
+              '🔓 Para que la alarma suene y se muestre correctamente sobre otras apps, necesitas activar este permiso.\n\n' +
+              'Sin este permiso, la alarma no podrá despertarte cuando el teléfono esté bloqueado.',
+              'Más tarde',
+              {
+                showSecondButton: true,
+                secondButtonText: 'Activar',
+                onSecondButtonPress: () => {
+                  OverlayPermissionModule.requestPermission();
+                  hideModal();
+                  // Después de overlay, verificar notificaciones con delay
+                  setTimeout(() => checkNotificationPermission(), 500);
+                },
+                onDismiss: () => {
+                  // Si cancela overlay, igual preguntar por notificaciones
+                  checkNotificationPermission();
+                }
+              }
+            );
+          } else {
+            console.log("Overlay permission already granted.");
+            // Si ya tiene overlay, verificar notificaciones
+            await checkNotificationPermission();
+          }
+        } catch (e) {
+          console.error("Error checking overlay permission:", e);
+          await checkNotificationPermission();
+        }
+      } else {
+        console.error("OverlayPermissionModule not available.");
+        await checkNotificationPermission();
+      }
+    };
+
+    checkPermissionsSequentially();
   }, []);
 
 
@@ -385,7 +438,12 @@ export default function HomeScreen({ navigation, tonePool, setTonePool }) {
                 {modalContent.showSecondButton ? (
                   <View style={styles.modalButtonsRow}>
                     <TouchableOpacity 
-                      onPress={hideModal}
+                      onPress={() => {
+                        hideModal();
+                        if (modalContent.onDismiss) {
+                          setTimeout(() => modalContent.onDismiss(), 300);
+                        }
+                      }}
                       style={styles.modalButtonSecondary}
                     >
                       <Text style={styles.modalButtonSecondaryText}>{modalContent.buttonText}</Text>
